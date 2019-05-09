@@ -10,6 +10,18 @@ class HomeInitialized extends HomeState {
   }
 }
 
+class SearchBarState extends HomeState {
+  bool isSearching;
+
+  SearchBarState({this.isSearching});
+}
+
+class SearchProductState extends HomeState {
+  List<Product> products;
+
+  SearchProductState({this.products});
+}
+
 class CategorySelectedState extends HomeState {
   String id;
   List<Product> products;

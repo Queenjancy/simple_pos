@@ -3,6 +3,19 @@ import 'package:meta/meta.dart';
 
 abstract class HomeEvent {}
 
+class SearchBarEvent extends HomeEvent {
+  bool isSearching;
+
+  SearchBarEvent({this.isSearching});
+}
+
+class SearchProductEvent extends HomeEvent {
+  String name;
+  List<Product> products;
+
+  SearchProductEvent({this.name, this.products});
+}
+
 class CategorySelectedEvent extends HomeEvent {
   String id;
   List<Product> products;

@@ -9,15 +9,30 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
   @override
   Stream<HomeState> mapEventToState(HomeEvent event) async* {
-    if (event is ChangeProductEvent) {
+    if (event is SearchBarEvent) {
+      yield SearchBarState(isSearching: event.isSearching);
+    } else if (event is SearchProductEvent) {
+      List<Product> filterProducts = [];
+      List<Product> products = event.products;
+
+      products.forEach((product) {
+        if (product.name.toLowerCase().contains(event.name.toLowerCase()))
+          filterProducts.add(product);
+      });
+
+      print(filterProducts.length);
+
+      yield SearchProductState(products: filterProducts);
+    } else if (event is ChangeProductEvent) {
       yield ChangeProductState(mode: event.mode);
     } else if (event is CategorySelectedEvent) {
       List<Product> filterProducts = [];
       List<Product> products = event.products;
 
       products.forEach((product) {
-        if (product.category_id == event.id)
+        if (event.id == '0') {
           filterProducts.add(product);
+        } else if (product.category_id == event.id) filterProducts.add(product);
       });
 
       yield CategorySelectedState(id: event.id, products: filterProducts);
