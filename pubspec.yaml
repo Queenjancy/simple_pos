@@ -21,6 +21,7 @@ flutter:
     - assets/logo/ic_logo_converse.png
     - assets/logo/ic_os_bw_g.jpg
     - assets/logo/ic_so_g.jpg
+    - assets/logo/ic_hi_black_egret.png
     - assets/logo/ic_list.png
     - assets/logo/ic_columns.png
   fonts:
