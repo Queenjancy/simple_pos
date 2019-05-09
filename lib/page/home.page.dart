@@ -22,6 +22,8 @@ class _HomePageState extends State<HomePage> {
 
   List<Product> _filterProducts;
 
+  TextEditingController _searchController = TextEditingController();
+  bool _appBarSearch = false;
   int _mode = 0;
 
   @override
@@ -29,6 +31,7 @@ class _HomePageState extends State<HomePage> {
     _homeBloc = HomeBloc();
 
     _categories = [
+      Category('0', 'Semua', null),
       Category('1', 'Vans', null),
       Category('2', 'Converse', null)
     ];
@@ -38,7 +41,10 @@ class _HomePageState extends State<HomePage> {
           'assets/logo/ic_os_bw_g.jpg', '750.000'),
       Product('2', '1', 'Slipon Checkerboard', 'Global Release',
           'assets/logo/ic_so_g.jpg', '700.000'),
+      Product('3', '2', 'Chuck Taylor 70s HI Black Egret', 'Global Release',
+          'assets/logo/ic_hi_black_egret.png', '950.000'),
     ];
+    _filterProducts = _products;
 
     super.initState();
   }
@@ -55,6 +61,17 @@ class _HomePageState extends State<HomePage> {
         body: BlocBuilder(
       bloc: _homeBloc,
       builder: (context, HomeState state) {
+        if (state is SearchBarState) {
+          _appBarSearch = state.isSearching;
+          _filterProducts = _products;
+        }
+
+        if (state is SearchProductState) {
+          if (_filterProducts != null)
+            print('filter ${_filterProducts.length}');
+          _filterProducts = state.products;
+        }
+
         if (state is CategorySelectedState) {
           _filterProducts = state.products;
         }
@@ -63,7 +80,8 @@ class _HomePageState extends State<HomePage> {
           _mode = state.mode;
         }
 
-        return Container(
+        return SafeArea(
+            child: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
@@ -77,133 +95,224 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
           ),
-          child: SafeArea(
-              child: Column(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               Container(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: <Widget>[
-                    Icon(
-                      Icons.menu,
-                      color: Colors.white,
-                      size: 32.0,
-                    ),
-                    Icon(
-                      Icons.shopping_cart,
-                      color: Colors.white,
-                      size: 24.0,
-                    ),
-                  ],
-                ),
+                child: _generateAppBarView(),
                 padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               ),
-              Container(
-                padding: EdgeInsets.fromLTRB(16.0, 32.0, 16.0, 16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      'Kategori',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18.0,
-                          fontWeight: FontWeight.w500),
-                    ),
-                    Container(
-                      margin: EdgeInsets.only(top: 8.0),
-                      height: 40.0,
-                      alignment: Alignment.center,
-                      child: ListView.builder(
-                        itemBuilder: (context, position) {
-                          Category category = _categories[position];
-                          return Container(
-                            alignment: Alignment.center,
-                            margin: EdgeInsets.only(
-                                right: position == (_categories.length - 1)
-                                    ? 0.0
-                                    : 8.0),
-                            child: RaisedButton(
-                              onPressed: () {
-                                _categorySelectHandler(position);
-                              },
-                              color: AppColors.skyBlueColor,
-                              splashColor: AppColors.primaryColor,
-                              padding: EdgeInsets.symmetric(horizontal: 48.0),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius:
-                                      BorderRadius.all(Radius.circular(4.0))),
-                              child: Text(
-                                category.title,
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14.0,
-                                    fontWeight: FontWeight.w700),
+              Expanded(
+                  child: SingleChildScrollView(
+                child: Container(
+                  padding: EdgeInsets.fromLTRB(16.0, 32.0, 16.0, 16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        'Kategori',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18.0,
+                            fontWeight: FontWeight.w500),
+                      ),
+                      Container(
+                        margin: EdgeInsets.only(top: 8.0),
+                        height: 40.0,
+                        alignment: Alignment.center,
+                        child: ListView.builder(
+                          itemBuilder: (context, position) {
+                            Category category = _categories[position];
+                            return Container(
+                              alignment: Alignment.center,
+                              margin: EdgeInsets.only(
+                                  right: position == (_categories.length - 1)
+                                      ? 0.0
+                                      : 8.0),
+                              child: RaisedButton(
+                                onPressed: () {
+                                  _categorySelectHandler(position);
+                                },
+                                color: AppColors.skyBlueColor,
+                                splashColor: AppColors.primaryColor,
+                                padding: EdgeInsets.symmetric(horizontal: 48.0),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius:
+                                        BorderRadius.all(Radius.circular(4.0))),
+                                child: Text(
+                                  category.title,
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14.0,
+                                      fontWeight: FontWeight.w700),
+                                ),
                               ),
+                            );
+                          },
+                          itemCount: _categories.length,
+                          scrollDirection: Axis.horizontal,
+                        ),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.only(top: 16.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: <Widget>[
+                            Text(
+                              'Produk',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18.0,
+                                  fontWeight: FontWeight.w500),
                             ),
-                          );
-                        },
-                        itemCount: _categories.length,
-                        scrollDirection: Axis.horizontal,
+                            Row(
+                              children: <Widget>[
+                                InkWell(
+                                  child: Image.asset(
+                                      'assets/logo/ic_columns.png',
+                                      width: 24.0,
+                                      height: 24.0,
+                                      color: _mode == 0
+                                          ? AppColors.skyBlueColor
+                                          : Colors.white),
+                                  onTap: () {
+                                    _homeBloc
+                                        .dispatch(ChangeProductEvent(mode: 0));
+                                  },
+                                ),
+                                Container(
+                                  width: 8.0,
+                                ),
+                                InkWell(
+                                  child: Image.asset('assets/logo/ic_list.png',
+                                      width: 24.0,
+                                      height: 24.0,
+                                      color: _mode == 1
+                                          ? AppColors.skyBlueColor
+                                          : Colors.white),
+                                  onTap: () {
+                                    _homeBloc
+                                        .dispatch(ChangeProductEvent(mode: 1));
+                                  },
+                                )
+                              ],
+                            )
+                          ],
+                        ),
                       ),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.only(top: 16.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: <Widget>[
-                          Text(
-                            'Produk',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18.0,
-                                fontWeight: FontWeight.w500),
-                          ),
-                          Row(
-                            children: <Widget>[
-                              InkWell(
-                                child: Image.asset('assets/logo/ic_columns.png',
-                                    width: 24.0,
-                                    height: 24.0,
-                                    color: _mode == 0
-                                        ? AppColors.skyBlueColor
-                                        : Colors.white),
-                                onTap: () {
-                                  _homeBloc
-                                      .dispatch(ChangeProductEvent(mode: 0));
-                                },
-                              ),
-                              Container(
-                                width: 8.0,
-                              ),
-                              InkWell(
-                                child: Image.asset('assets/logo/ic_list.png',
-                                    width: 24.0,
-                                    height: 24.0,
-                                    color: _mode == 1
-                                        ? AppColors.skyBlueColor
-                                        : Colors.white),
-                                onTap: () {
-                                  _homeBloc
-                                      .dispatch(ChangeProductEvent(mode: 1));
-                                },
-                              )
-                            ],
-                          )
-                        ],
-                      ),
-                    ),
-                    _generateProductView()
-                  ],
+                      _generateProductView()
+                    ],
+                  ),
+                ),
+              )),
+            ],
+          ),
+        ));
+      },
+    ));
+  }
+
+  _generateAppBarView() {
+    if (_appBarSearch) {
+      return Row(
+        children: <Widget>[
+          SizedBox(
+            width: 32.0,
+            child: RawMaterialButton(
+              onPressed: () {
+                _searchController.clear();
+                _homeBloc.dispatch(SearchBarEvent(isSearching: false));
+              },
+              child: Icon(
+                Icons.arrow_back,
+                color: Colors.white,
+              ),
+              shape: CircleBorder(),
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ),
+          Flexible(
+              child: Container(
+            margin: EdgeInsets.symmetric(horizontal: 16.0),
+            child: TextField(
+              controller: _searchController,
+              maxLines: 1,
+              keyboardType: TextInputType.text,
+              style: TextStyle(color: Colors.white, fontSize: 16.0),
+              decoration: InputDecoration(
+                  focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                          width: 2.0, color: AppColors.skyBlueColor)),
+                  contentPadding: EdgeInsets.only(bottom: 8.0, top: 8.0)),
+              autofocus: true,
+              cursorColor: AppColors.skyBlueColor,
+              onChanged: (value) {
+                _homeBloc.dispatch(
+                    SearchProductEvent(name: value, products: _products));
+              },
+            ),
+          )),
+          SizedBox(
+            width: 28.0,
+            child: RawMaterialButton(
+              onPressed: () {
+                _searchController.clear();
+                _homeBloc.dispatch(SearchBarEvent(isSearching: true));
+              },
+              child: Icon(
+                Icons.clear,
+                color: Colors.white,
+              ),
+              shape: CircleBorder(),
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          )
+        ],
+      );
+    } else {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: <Widget>[
+          Icon(
+            Icons.menu,
+            color: Colors.white,
+            size: 32.0,
+          ),
+          Row(
+            children: <Widget>[
+              SizedBox(
+                width: 48.0,
+                child: RawMaterialButton(
+                  onPressed: () {
+                    _homeBloc
+                        .dispatch(SearchBarEvent(isSearching: !_appBarSearch));
+                  },
+                  child: Icon(
+                    Icons.search,
+                    color: Colors.white,
+                  ),
+                  shape: CircleBorder(),
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+              SizedBox(
+                width: 32.0,
+                child: RawMaterialButton(
+                  onPressed: () {},
+                  child: Icon(
+                    Icons.shopping_cart,
+                    color: Colors.white,
+                  ),
+                  shape: CircleBorder(),
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
               ),
             ],
-          )),
-        );
-      },
-    ));
+          ),
+        ],
+      );
+    }
   }
 
   _categorySelectHandler(int pos) {
@@ -214,18 +323,10 @@ class _HomePageState extends State<HomePage> {
   _generateProductView() {
     if (_filterProducts == null || _filterProducts.length == 0) {
       return Container(
-        height: 250.0,
-        padding: EdgeInsets.all(16.0),
-        child: Center(
-          child: Text(
-            _filterProducts == null
-                ? 'Pilih Kategori Terlebih Dahulu'
-                : 'Produk Kosong',
-            style: TextStyle(
-                color: Colors.white,
-                fontSize: 16.0,
-                fontWeight: FontWeight.w600),
-          ),
+        margin: EdgeInsets.only(top: 8.0),
+        child: Text(
+          'Produk Tidak Ditemukan',
+          style: TextStyle(color: Colors.white, fontSize: 14.0),
         ),
       );
     } else {
@@ -279,61 +380,71 @@ class _HomePageState extends State<HomePage> {
           color: Colors.white,
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.all(Radius.circular(8.0)))),
-      child: Stack(
-        alignment: Alignment.center,
-        children: <Widget>[
-          Image.asset(
-            photoUrl,
-            width: 180.0,
-            height: 180.0,
-          ),
-          Container(
-            padding: EdgeInsets.all(16.0),
-            height: 250.0,
-            width: 200.0,
-            decoration: ShapeDecoration(
-                color: Color(0xACffffff),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(8.0)))),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: <Widget>[
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+      child: Material(
+        shape: CircleBorder(),
+        child: InkWell(
+          splashColor: AppColors.skyBlueColor,
+          borderRadius: BorderRadius.all(Radius.circular(8.0)),
+          child: Stack(
+            alignment: Alignment.center,
+            children: <Widget>[
+              Image.asset(
+                photoUrl,
+                width: 180.0,
+                height: 180.0,
+              ),
+              Container(
+                padding: EdgeInsets.all(16.0),
+                height: 250.0,
+                width: 200.0,
+                decoration: ShapeDecoration(
+                    color: Color(0xACffffff),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(8.0)))),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: <Widget>[
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          name,
+                          style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 16.0,
+                              fontWeight: FontWeight.w500),
+                          textAlign: TextAlign.left,
+                        ),
+                        Padding(
+                          padding: EdgeInsets.only(top: 4.0),
+                          child: Text(
+                            subname,
+                            style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 14.0,
+                                fontWeight: FontWeight.w500),
+                            textAlign: TextAlign.left,
+                          ),
+                        ),
+                      ],
+                    ),
                     Text(
-                      name,
+                      'Rp $price',
                       style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 16.0,
-                          fontWeight: FontWeight.w500),
-                      textAlign: TextAlign.left,
-                    ),
-                    Padding(
-                      padding: EdgeInsets.only(top: 4.0),
-                      child: Text(
-                        subname,
-                        style: TextStyle(
-                            color: Colors.grey,
-                            fontSize: 14.0,
-                            fontWeight: FontWeight.w500),
-                        textAlign: TextAlign.left,
-                      ),
-                    ),
+                          color: AppColors.skyBlueColor,
+                          fontSize: 20.0,
+                          fontWeight: FontWeight.w700),
+                    )
                   ],
                 ),
-                Text(
-                  'Rp $price',
-                  style: TextStyle(
-                      color: AppColors.skyBlueColor,
-                      fontSize: 20.0,
-                      fontWeight: FontWeight.w700),
-                )
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+          onTap: () {
+            print('clicked');
+          },
+        ),
       ),
     );
   }
@@ -343,51 +454,60 @@ class _HomePageState extends State<HomePage> {
     return Container(
         margin: EdgeInsets.only(top: 1.0),
         color: Colors.white,
-        child: Row(
-          children: <Widget>[
-            Image.asset(
-              photoUrl,
-              width: 84.0,
-              height: 84.0,
-            ),
-            Container(
-              width: 12.0,
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        child: Material(
+          child: InkWell(
+            splashColor: AppColors.skyBlueColor[100],
+            child: Row(
               children: <Widget>[
-                Text(
-                  name,
-                  style: TextStyle(
-                      fontSize: 16.0,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black),
+                Image.asset(
+                  photoUrl,
+                  width: 84.0,
+                  height: 84.0,
                 ),
-                Padding(
-                  padding: EdgeInsets.only(top: 4.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        subname,
-                        style: TextStyle(fontSize: 14.0, color: Colors.grey),
+                Container(
+                  width: 12.0,
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      name,
+                      style: TextStyle(
+                          fontSize: 16.0,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.only(top: 4.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text(
+                            subname,
+                            style:
+                                TextStyle(fontSize: 14.0, color: Colors.grey),
+                          ),
+                          Padding(
+                            padding: EdgeInsets.only(top: 16.0),
+                            child: Text(
+                              'Rp $price',
+                              style: TextStyle(
+                                  fontSize: 16.0,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.skyBlueColor),
+                            ),
+                          )
+                        ],
                       ),
-                      Padding(
-                        padding: EdgeInsets.only(top: 16.0),
-                        child: Text(
-                          'Rp $price',
-                          style: TextStyle(
-                              fontSize: 16.0,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.skyBlueColor),
-                        ),
-                      )
-                    ],
-                  ),
+                    )
+                  ],
                 )
               ],
-            )
-          ],
+            ),
+            onTap: () {
+              print('clicked');
+            },
+          ),
         ));
   }
 }
